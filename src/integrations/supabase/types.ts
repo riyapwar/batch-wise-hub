@@ -14,7 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      attendance_records: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          status: string
+          student_id: number
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          status: string
+          student_id: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          status?: string
+          student_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      students: {
+        Row: {
+          batch: string
+          created_at: string
+          faculty: string
+          id: number
+          mobile: string
+          name: string
+        }
+        Insert: {
+          batch: string
+          created_at?: string
+          faculty: string
+          id?: number
+          mobile: string
+          name: string
+        }
+        Update: {
+          batch?: string
+          created_at?: string
+          faculty?: string
+          id?: number
+          mobile?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

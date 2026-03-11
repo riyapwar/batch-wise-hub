@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
-import { getData, markAttendance, getTodayString, getAttendanceForDate } from "@/lib/store";
-import { AttendanceRecord } from "@/lib/types";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getStudents, getBatches, markAttendance, getTodayString, getAttendanceForDate } from "@/lib/store";
+import { AttendanceRecord } from "@/lib/store";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,13 +9,23 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 const Attendance = () => {
+  const queryClient = useQueryClient();
   const [date, setDate] = useState(getTodayString());
-  const [refresh, setRefresh] = useState(0);
-
-  const data = useMemo(() => getData(), [refresh]);
-  const existing = useMemo(() => getAttendanceForDate(date), [date, refresh]);
-
   const [localStatus, setLocalStatus] = useState<Record<number, "present" | "absent">>({});
+
+  const { data: students = [] } = useQuery({ queryKey: ["students"], queryFn: getStudents });
+  const { data: batches = [] } = useQuery({ queryKey: ["batches"], queryFn: getBatches });
+  const { data: existing = [] } = useQuery({
+    queryKey: ["attendance", date],
+    queryFn: () => getAttendanceForDate(date),
+  });
+
+  const [batchFilter, setBatchFilter] = useState("");
+
+  const filteredStudents = useMemo(() => {
+    if (!batchFilter) return students;
+    return students.filter((s) => s.batch === batchFilter);
+  }, [students, batchFilter]);
 
   const getStatus = (studentId: number): "present" | "absent" | null => {
     if (localStatus[studentId]) return localStatus[studentId];
@@ -28,23 +39,21 @@ const Attendance = () => {
     setLocalStatus((prev) => ({ ...prev, [studentId]: next }));
   };
 
-  const handleSave = () => {
-    const records: AttendanceRecord[] = data.students.map((s) => ({
+  const handleSave = async () => {
+    const records: AttendanceRecord[] = filteredStudents.map((s) => ({
       studentId: s.id,
       date,
       status: localStatus[s.id] ?? existing.find((a) => a.studentId === s.id)?.status ?? "absent",
     }));
-    markAttendance(records);
-    setLocalStatus({});
-    setRefresh((r) => r + 1);
-    toast.success(`Attendance saved for ${date}`);
+    try {
+      await markAttendance(records);
+      setLocalStatus({});
+      queryClient.invalidateQueries({ queryKey: ["attendance"] });
+      toast.success(`Attendance saved for ${date}`);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to save");
+    }
   };
-
-  const [batchFilter, setBatchFilter] = useState("");
-  const students = useMemo(() => {
-    if (!batchFilter) return data.students;
-    return data.students.filter((s) => s.batch === batchFilter);
-  }, [data.students, batchFilter]);
 
   return (
     <PageShell title="✅ Mark Attendance">
@@ -56,16 +65,16 @@ const Attendance = () => {
           onChange={(e) => setBatchFilter(e.target.value)}
         >
           <option value="">All Batches</option>
-          {data.batches.map((b) => <option key={b} value={b}>{b}</option>)}
+          {batches.map((b) => <option key={b} value={b}>{b}</option>)}
         </select>
       </div>
 
-      {students.length === 0 ? (
+      {filteredStudents.length === 0 ? (
         <p className="text-center text-muted-foreground py-12 text-sm">No students. Add students first.</p>
       ) : (
         <>
           <div className="space-y-2 mb-4">
-            {students.map((s) => {
+            {filteredStudents.map((s) => {
               const status = getStatus(s.id);
               return (
                 <button

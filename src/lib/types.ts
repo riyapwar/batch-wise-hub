@@ -1,20 +1,9 @@
-export interface Student {
-  id: number;
-  name: string;
-  mobile: string;
-  batch: string;
-  faculty: string;
-}
-
-export interface AttendanceRecord {
-  studentId: number;
-  date: string; // YYYY-MM-DD
-  status: "present" | "absent";
-}
+// Re-export types from store for backward compatibility
+export type { Student, AttendanceRecord } from "./store";
 
 export interface AppData {
-  students: Student[];
-  attendance: AttendanceRecord[];
+  students: import("./store").Student[];
+  attendance: import("./store").AttendanceRecord[];
   batches: string[];
   faculties: string[];
   nextId: number;

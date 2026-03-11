@@ -1,32 +1,31 @@
-import { useMemo } from "react";
-import { getData, getTodayString } from "@/lib/store";
+import { useQuery } from "@tanstack/react-query";
+import { getStudents, getAttendanceForDate, getTodayString } from "@/lib/store";
 import { Users, UserCheck, UserX, TrendingUp } from "lucide-react";
 import PageShell from "@/components/PageShell";
 
 const Dashboard = () => {
-  const stats = useMemo(() => {
-    const data = getData();
-    const today = getTodayString();
-    const todayRecords = data.attendance.filter((a) => a.date === today);
-    const presentToday = todayRecords.filter((a) => a.status === "present").length;
-    const absentToday = todayRecords.filter((a) => a.status === "absent").length;
-    const totalMarked = todayRecords.length;
-    const percentage = totalMarked > 0 ? Math.round((presentToday / totalMarked) * 100) : 0;
+  const today = getTodayString();
 
-    return {
-      total: data.students.length,
-      present: presentToday,
-      absent: absentToday,
-      percentage,
-      today,
-    };
-  }, []);
+  const { data: students = [] } = useQuery({
+    queryKey: ["students"],
+    queryFn: getStudents,
+  });
+
+  const { data: todayRecords = [] } = useQuery({
+    queryKey: ["attendance", today],
+    queryFn: () => getAttendanceForDate(today),
+  });
+
+  const presentToday = todayRecords.filter((a) => a.status === "present").length;
+  const absentToday = todayRecords.filter((a) => a.status === "absent").length;
+  const totalMarked = todayRecords.length;
+  const percentage = totalMarked > 0 ? Math.round((presentToday / totalMarked) * 100) : 0;
 
   const cards = [
-    { label: "Total Students", value: stats.total, icon: Users, color: "bg-primary/10 text-primary" },
-    { label: "Present Today", value: stats.present, icon: UserCheck, color: "bg-success/10 text-success" },
-    { label: "Absent Today", value: stats.absent, icon: UserX, color: "bg-destructive/10 text-destructive" },
-    { label: "Attendance %", value: `${stats.percentage}%`, icon: TrendingUp, color: "bg-accent/10 text-accent" },
+    { label: "Total Students", value: students.length, icon: Users, color: "bg-primary/10 text-primary" },
+    { label: "Present Today", value: presentToday, icon: UserCheck, color: "bg-success/10 text-success" },
+    { label: "Absent Today", value: absentToday, icon: UserX, color: "bg-destructive/10 text-destructive" },
+    { label: "Attendance %", value: `${percentage}%`, icon: TrendingUp, color: "bg-accent/10 text-accent" },
   ];
 
   return (
