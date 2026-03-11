@@ -1,11 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, CheckSquare, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Users, CheckSquare, BarChart3, Settings } from "lucide-react";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/students", label: "Students", icon: Users },
   { to: "/attendance", label: "Attendance", icon: CheckSquare },
   { to: "/reports", label: "Reports", icon: BarChart3 },
+  { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 const BottomNav = () => {
@@ -20,7 +21,7 @@ const BottomNav = () => {
             <Link
               key={item.to}
               to={item.to}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors ${
+              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors ${
                 active
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
