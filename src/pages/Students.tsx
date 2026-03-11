@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
-import { getData, addStudent, updateStudent, deleteStudent } from "@/lib/store";
-import { Student } from "@/lib/types";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getStudents, getBatches, getFaculties, addStudent, updateStudent, deleteStudent } from "@/lib/store";
+import { Student } from "@/lib/store";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 
 const Students = () => {
-  const [refresh, setRefresh] = useState(0);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
@@ -19,19 +20,21 @@ const Students = () => {
   const [batch, setBatch] = useState("");
   const [faculty, setFaculty] = useState("");
 
-  const data = useMemo(() => getData(), [refresh]);
+  const { data: students = [] } = useQuery({ queryKey: ["students"], queryFn: getStudents });
+  const { data: batches = [] } = useQuery({ queryKey: ["batches"], queryFn: getBatches });
+  const { data: faculties = [] } = useQuery({ queryKey: ["faculties"], queryFn: getFaculties });
 
   const filtered = useMemo(() => {
-    if (!search) return data.students;
+    if (!search) return students;
     const q = search.toLowerCase();
-    return data.students.filter(
+    return students.filter(
       (s) =>
         s.name.toLowerCase().includes(q) ||
         s.batch.toLowerCase().includes(q) ||
         s.faculty.toLowerCase().includes(q) ||
         String(s.id).includes(q)
     );
-  }, [data.students, search]);
+  }, [students, search]);
 
   const resetForm = () => {
     setName("");
@@ -50,29 +53,42 @@ const Students = () => {
     setDialogOpen(true);
   };
 
-  const handleSave = useCallback(() => {
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["students"] });
+    queryClient.invalidateQueries({ queryKey: ["batches"] });
+    queryClient.invalidateQueries({ queryKey: ["faculties"] });
+  };
+
+  const handleSave = useCallback(async () => {
     if (!name.trim() || !mobile.trim() || !batch.trim() || !faculty.trim()) {
       toast.error("All fields are required");
       return;
     }
 
-    if (editingStudent) {
-      updateStudent(editingStudent.id, { name, mobile, batch, faculty });
-      toast.success("Student updated");
-    } else {
-      addStudent({ name, mobile, batch, faculty });
-      toast.success("Student added");
+    try {
+      if (editingStudent) {
+        await updateStudent(editingStudent.id, { name, mobile, batch, faculty });
+        toast.success("Student updated");
+      } else {
+        await addStudent({ name, mobile, batch, faculty });
+        toast.success("Student added");
+      }
+      resetForm();
+      setDialogOpen(false);
+      invalidate();
+    } catch (e: any) {
+      toast.error(e.message || "Something went wrong");
     }
-
-    resetForm();
-    setDialogOpen(false);
-    setRefresh((r) => r + 1);
   }, [name, mobile, batch, faculty, editingStudent]);
 
-  const handleDelete = (id: number) => {
-    deleteStudent(id);
-    toast.success("Student deleted");
-    setRefresh((r) => r + 1);
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteStudent(id);
+      toast.success("Student deleted");
+      invalidate();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to delete");
+    }
   };
 
   return (
@@ -95,13 +111,13 @@ const Students = () => {
               <div>
                 <Input placeholder="Batch Name" value={batch} onChange={(e) => setBatch(e.target.value)} list="batches" />
                 <datalist id="batches">
-                  {data.batches.map((b) => <option key={b} value={b} />)}
+                  {batches.map((b) => <option key={b} value={b} />)}
                 </datalist>
               </div>
               <div>
                 <Input placeholder="Faculty Name" value={faculty} onChange={(e) => setFaculty(e.target.value)} list="faculties" />
                 <datalist id="faculties">
-                  {data.faculties.map((f) => <option key={f} value={f} />)}
+                  {faculties.map((f) => <option key={f} value={f} />)}
                 </datalist>
               </div>
               <Button className="w-full" onClick={handleSave}>

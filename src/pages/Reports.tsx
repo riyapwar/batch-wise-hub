@@ -1,45 +1,50 @@
 import { useState, useMemo } from "react";
-import { getData } from "@/lib/store";
+import { useQuery } from "@tanstack/react-query";
+import { getStudents, getBatches, getFaculties, getAllAttendance } from "@/lib/store";
 import PageShell from "@/components/PageShell";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const Reports = () => {
-  const data = useMemo(() => getData(), []);
+  const { data: students = [] } = useQuery({ queryKey: ["students"], queryFn: getStudents });
+  const { data: batches = [] } = useQuery({ queryKey: ["batches"], queryFn: getBatches });
+  const { data: faculties = [] } = useQuery({ queryKey: ["faculties"], queryFn: getFaculties });
+  const { data: attendance = [] } = useQuery({ queryKey: ["attendance-all"], queryFn: getAllAttendance });
+
   const [selectedBatch, setSelectedBatch] = useState("");
   const [selectedFaculty, setSelectedFaculty] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<number | "">("");
 
   const batchReport = useMemo(() => {
     if (!selectedBatch) return null;
-    const students = data.students.filter((s) => s.batch === selectedBatch);
-    return students.map((s) => {
-      const records = data.attendance.filter((a) => a.studentId === s.id);
+    const filtered = students.filter((s) => s.batch === selectedBatch);
+    return filtered.map((s) => {
+      const records = attendance.filter((a) => a.studentId === s.id);
       const present = records.filter((a) => a.status === "present").length;
       const total = records.length;
       return { ...s, present, total, pct: total > 0 ? Math.round((present / total) * 100) : 0 };
     });
-  }, [selectedBatch, data]);
+  }, [selectedBatch, students, attendance]);
 
   const facultyReport = useMemo(() => {
     if (!selectedFaculty) return null;
-    const students = data.students.filter((s) => s.faculty === selectedFaculty);
-    return students.map((s) => {
-      const records = data.attendance.filter((a) => a.studentId === s.id);
+    const filtered = students.filter((s) => s.faculty === selectedFaculty);
+    return filtered.map((s) => {
+      const records = attendance.filter((a) => a.studentId === s.id);
       const present = records.filter((a) => a.status === "present").length;
       const total = records.length;
       return { ...s, present, total, pct: total > 0 ? Math.round((present / total) * 100) : 0 };
     });
-  }, [selectedFaculty, data]);
+  }, [selectedFaculty, students, attendance]);
 
   const studentReport = useMemo(() => {
     if (!selectedStudent) return null;
-    const student = data.students.find((s) => s.id === selectedStudent);
+    const student = students.find((s) => s.id === selectedStudent);
     if (!student) return null;
-    const records = data.attendance
+    const records = attendance
       .filter((a) => a.studentId === selectedStudent)
       .sort((a, b) => b.date.localeCompare(a.date));
     return { student, records };
-  }, [selectedStudent, data]);
+  }, [selectedStudent, students, attendance]);
 
   return (
     <PageShell title="📈 Reports">
@@ -57,7 +62,7 @@ const Reports = () => {
             onChange={(e) => setSelectedBatch(e.target.value)}
           >
             <option value="">Select Batch</option>
-            {data.batches.map((b) => <option key={b} value={b}>{b}</option>)}
+            {batches.map((b) => <option key={b} value={b}>{b}</option>)}
           </select>
           {batchReport && <ReportTable rows={batchReport} />}
         </TabsContent>
@@ -69,7 +74,7 @@ const Reports = () => {
             onChange={(e) => setSelectedFaculty(e.target.value)}
           >
             <option value="">Select Faculty</option>
-            {data.faculties.map((f) => <option key={f} value={f}>{f}</option>)}
+            {faculties.map((f) => <option key={f} value={f}>{f}</option>)}
           </select>
           {facultyReport && <ReportTable rows={facultyReport} />}
         </TabsContent>
@@ -81,7 +86,7 @@ const Reports = () => {
             onChange={(e) => setSelectedStudent(e.target.value ? Number(e.target.value) : "")}
           >
             <option value="">Select Student</option>
-            {data.students.map((s) => <option key={s.id} value={s.id}>{s.name} (ID: {s.id})</option>)}
+            {students.map((s) => <option key={s.id} value={s.id}>{s.name} (ID: {s.id})</option>)}
           </select>
           {studentReport && (
             <div className="space-y-2">
