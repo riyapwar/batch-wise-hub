@@ -73,6 +73,7 @@ const Students = () => {
         toast.success("Student updated");
       } else {
         const params = new URLSearchParams({
+          student_id: Date.now().toString(),
           name: name.toUpperCase(),
           mobile,
           batch,
