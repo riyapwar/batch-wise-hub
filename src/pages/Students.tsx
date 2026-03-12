@@ -72,17 +72,15 @@ const Students = () => {
         await updateStudent(editingStudent.id, { name, mobile, batch, faculty });
         toast.success("Student updated");
       } else {
-        await fetch(GOOGLE_SCRIPT_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: name.toUpperCase(),
-            mobile,
-            batch,
-            faculty,
-          }),
+        const params = new URLSearchParams({
+          name: name.toUpperCase(),
+          mobile,
+          batch,
+          faculty,
+        });
+        await fetch(`${GOOGLE_SCRIPT_URL}?${params.toString()}`, {
+          method: "GET",
+          mode: "no-cors",
         });
 
         toast.success("Student added to Google Sheet");
