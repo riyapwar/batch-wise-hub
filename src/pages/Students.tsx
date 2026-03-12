@@ -75,23 +75,22 @@ const Students = () => {
         const params = new URLSearchParams({
           student_id: Date.now().toString(),
           name: name.toUpperCase(),
-          mobile,
-          batch,
-          faculty,
+          mobile: mobile,
+          batch: batch,
+          faculty: faculty,
         });
         await fetch(`${GOOGLE_SCRIPT_URL}?${params.toString()}`, {
           method: "GET",
           mode: "no-cors",
         });
-
         toast.success("Student added to Google Sheet");
       }
 
       resetForm();
       setDialogOpen(false);
       invalidate();
-    } catch (e: any) {
-      toast.error(e.message || "Something went wrong");
+    } catch (e) {
+      toast.error("Something went wrong");
     }
   }, [name, mobile, batch, faculty, editingStudent]);
 
