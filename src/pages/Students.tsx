@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwANs6BiJEr0S2pUlHNBS-M8UcnVe1Gz8BCpSy_ro6LE3-I_SVNCf4NuEQudcWksUO/exec";
+
 
 const Students = () => {
   const queryClient = useQueryClient();
