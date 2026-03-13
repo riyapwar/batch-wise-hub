@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getStudents, getBatches, getFaculties, updateStudent, deleteStudent } from "@/lib/store";
+import { getStudents, getBatches, getFaculties, updateStudent, deleteStudent, addStudent } from "@/lib/store";
 import { Student } from "@/lib/store";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwANs6BiJEr0S2pUlHNBS-M8UcnVe1Gz8BCpSy_ro6LE3-I_SVNCf4NuEQudcWksUO/exec";
+
 
 const Students = () => {
   const queryClient = useQueryClient();
@@ -72,18 +72,8 @@ const Students = () => {
         await updateStudent(editingStudent.id, { name, mobile, batch, faculty });
         toast.success("Student updated");
       } else {
-        const params = new URLSearchParams({
-          student_id: Date.now().toString(),
-          name: name.toUpperCase(),
-          mobile: mobile,
-          batch: batch,
-          faculty: faculty,
-        });
-        await fetch(`${GOOGLE_SCRIPT_URL}?${params.toString()}`, {
-          method: "GET",
-          mode: "no-cors",
-        });
-        toast.success("Student added to Google Sheet");
+        await addStudent({ name, mobile, batch, faculty });
+        toast.success("Student added");
       }
 
       resetForm();

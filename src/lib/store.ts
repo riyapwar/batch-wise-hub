@@ -1,5 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
+const GOOGLE_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbzwANs6BiJEr0S2pUlHNBS-M8UcnVe1Gz8BCpSy_ro6LE3-I_SVNCf4NuEQudcWksUO/exec";
+
 export interface Student {
   id: number;
   name: string;
@@ -14,68 +17,90 @@ export interface AttendanceRecord {
   status: "present" | "absent";
 }
 
+/**
+ * Google Apps Script URL parameter conventions:
+ *
+ * GET ?action=getStudents
+ *   → returns JSON: { students: [{ id, name, mobile, batch, faculty }, ...] }
+ *
+ * GET ?action=addStudent&student_id=...&name=...&mobile=...&batch=...&faculty=...
+ *   → adds a row, returns JSON: { success: true }
+ *
+ * GET ?action=updateStudent&student_id=...&name=...&mobile=...&batch=...&faculty=...
+ *   → updates the row matching student_id, returns JSON: { success: true }
+ *
+ * GET ?action=deleteStudent&student_id=...
+ *   → deletes the row matching student_id, returns JSON: { success: true }
+ */
+
+async function gsheetFetch(params: Record<string, string>) {
+  const url = `${GOOGLE_SCRIPT_URL}?${new URLSearchParams(params).toString()}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Google Sheet request failed");
+  return res.json();
+}
+
 export async function getStudents(): Promise<Student[]> {
-  const { data, error } = await supabase
-    .from("students")
-    .select("*")
-    .order("id");
-  if (error) throw error;
-  return (data || []).map((s) => ({
-    id: s.id,
-    name: s.name,
-    mobile: s.mobile,
-    batch: s.batch,
-    faculty: s.faculty,
-  }));
+  try {
+    const data = await gsheetFetch({ action: "getStudents" });
+    return (data.students || []).map((s: any) => ({
+      id: Number(s.id || s.student_id),
+      name: String(s.name || ""),
+      mobile: String(s.mobile || ""),
+      batch: String(s.batch || ""),
+      faculty: String(s.faculty || ""),
+    }));
+  } catch (e) {
+    console.error("Failed to fetch students from Google Sheet:", e);
+    return [];
+  }
 }
 
 export async function getBatches(): Promise<string[]> {
-  const { data, error } = await supabase
-    .from("students")
-    .select("batch")
-    .order("batch");
-  if (error) throw error;
-  return [...new Set((data || []).map((d) => d.batch))];
+  const students = await getStudents();
+  return [...new Set(students.map((s) => s.batch).filter(Boolean))].sort();
 }
 
 export async function getFaculties(): Promise<string[]> {
-  const { data, error } = await supabase
-    .from("students")
-    .select("faculty")
-    .order("faculty");
-  if (error) throw error;
-  return [...new Set((data || []).map((d) => d.faculty))];
+  const students = await getStudents();
+  return [...new Set(students.map((s) => s.faculty).filter(Boolean))].sort();
 }
 
 export async function addStudent(student: Omit<Student, "id">): Promise<Student> {
-  const { data, error } = await supabase
-    .from("students")
-    .insert({
-      name: student.name.toUpperCase(),
-      mobile: student.mobile,
-      batch: student.batch,
-      faculty: student.faculty,
-    })
-    .select()
-    .single();
-  if (error) throw error;
-  return { id: data.id, name: data.name, mobile: data.mobile, batch: data.batch, faculty: data.faculty };
+  const studentId = Date.now().toString();
+  await gsheetFetch({
+    action: "addStudent",
+    student_id: studentId,
+    name: student.name.toUpperCase(),
+    mobile: student.mobile,
+    batch: student.batch,
+    faculty: student.faculty,
+  });
+  return {
+    id: Number(studentId),
+    name: student.name.toUpperCase(),
+    mobile: student.mobile,
+    batch: student.batch,
+    faculty: student.faculty,
+  };
 }
 
 export async function updateStudent(id: number, updates: Partial<Omit<Student, "id">>): Promise<void> {
-  const payload: Record<string, string> = {};
-  if (updates.name) payload.name = updates.name.toUpperCase();
-  if (updates.mobile) payload.mobile = updates.mobile;
-  if (updates.batch) payload.batch = updates.batch;
-  if (updates.faculty) payload.faculty = updates.faculty;
-
-  const { error } = await supabase.from("students").update(payload).eq("id", id);
-  if (error) throw error;
+  await gsheetFetch({
+    action: "updateStudent",
+    student_id: String(id),
+    name: updates.name?.toUpperCase() || "",
+    mobile: updates.mobile || "",
+    batch: updates.batch || "",
+    faculty: updates.faculty || "",
+  });
 }
 
 export async function deleteStudent(id: number): Promise<void> {
-  const { error } = await supabase.from("students").delete().eq("id", id);
-  if (error) throw error;
+  await gsheetFetch({
+    action: "deleteStudent",
+    student_id: String(id),
+  });
 }
 
 export async function markAttendance(records: AttendanceRecord[]): Promise<void> {
