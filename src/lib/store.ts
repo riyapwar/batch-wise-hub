@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 const GOOGLE_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbzwANs6BiJEr0S2pUlHNBS-M8UcnVe1Gz8BCpSy_ro6LE3-I_SVNCf4NuEQudcWksUO/exec";
+  "https://script.google.com/macros/s/AKfycbzOhg6HQ3WjuwH_gsM05CSvkD-CA691cabYWLe-t65yhiBB1lyzxnbQvBrKKhBuJ05h/exec";
 
 export interface Student {
   id: number;
