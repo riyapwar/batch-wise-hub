@@ -72,18 +72,8 @@ const Students = () => {
         await updateStudent(editingStudent.id, { name, mobile, batch, faculty });
         toast.success("Student updated");
       } else {
-        const params = new URLSearchParams({
-          student_id: Date.now().toString(),
-          name: name.toUpperCase(),
-          mobile: mobile,
-          batch: batch,
-          faculty: faculty,
-        });
-        await fetch(`${GOOGLE_SCRIPT_URL}?${params.toString()}`, {
-          method: "GET",
-          mode: "no-cors",
-        });
-        toast.success("Student added to Google Sheet");
+        await addStudent({ name, mobile, batch, faculty });
+        toast.success("Student added");
       }
 
       resetForm();
