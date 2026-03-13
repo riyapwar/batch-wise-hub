@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getStudents, getBatches, getFaculties, updateStudent, deleteStudent } from "@/lib/store";
+import { getStudents, getBatches, getFaculties, updateStudent, deleteStudent, addStudent } from "@/lib/store";
 import { Student } from "@/lib/store";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
